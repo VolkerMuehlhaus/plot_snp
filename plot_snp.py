@@ -15,7 +15,7 @@ def phase(value):
 
 # get one S-parameter item over frequency
 def Sxx(network,m,n):
-    return network.s[:,m,n]
+    return network.s[:,m-1,n-1]
 
 
 # This dict is used to identify the plot function 
@@ -77,8 +77,8 @@ linestyles = ['solid', 'dashed', 'dashdot', 'dotted','solid', 'dashed', 'dashdot
 
 
 for a, param in enumerate(parameters):
-    m = param[0]-1
-    n = param[1]-1
+    m = param[0]
+    n = param[1]
         
     func = 'dB'
     if len(parameters) > 1:
