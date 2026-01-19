@@ -77,8 +77,8 @@ linestyles = ['solid', 'dashed', 'dashdot', 'dotted','solid', 'dashed', 'dashdot
 
 
 for a, param in enumerate(parameters):
-    m = param[0]
-    n = param[1]
+    m = param[0]-1
+    n = param[1]-1
         
     func = 'dB'
     if len(parameters) > 1:
