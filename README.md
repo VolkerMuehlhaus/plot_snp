@@ -17,6 +17,12 @@ The tool plots all files with the specified parameter(s)
 
 ![plot](./doc/png/plot_snp.png)
 
+Add `-smith` to additionally plot reflection parameters (Snn, e.g. S11, S22) on a Smith chart, in a separate window. The dB/phase window still shows all selected parameters as before.
+
+```
+python plot_snp.py data.s2p S11 S21 -smith
+```
+
 
 
 # Prerequisites
