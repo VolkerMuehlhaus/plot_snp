@@ -32,12 +32,13 @@ print('Read S-Parameter files and plot selected S-params')
 # evaluate commandline
 networks = []
 parameters = []
+smith_mode = False
 
 # read all files specified in command line
 for arg in sys.argv[1:]:
 
     if '.s' in arg:
-        # this is an S-parameter file    
+        # this is an S-parameter file
         network = rf.Network(arg)
         f = network.frequency.f
         networks.append(network)
@@ -45,7 +46,12 @@ for arg in sys.argv[1:]:
         # shorted name if file name is too long
         if len(arg)>17:
             network.name = network.name[:10] + '..' + network.name[-20:]
-    
+
+    elif arg.upper() in ('-SMITH', '--SMITH'):
+        # plot reflection parameters (Snn) as Smith chart in a separate window
+        smith_mode = True
+        print('Smith chart plotting enabled for reflection parameters (Snn)')
+
     elif arg[0].upper() == 'S':
         # this is control which S-parameter(s) to plot
         l = len(arg)-1 # length of numbers in Sxx parameter
@@ -79,7 +85,7 @@ linestyles = ['solid', 'dashed', 'dashdot', 'dotted','solid', 'dashed', 'dashdot
 for a, param in enumerate(parameters):
     m = param[0]
     n = param[1]
-        
+
     func = 'dB'
     if len(parameters) > 1:
         ax = axes[0,a]
@@ -110,7 +116,32 @@ for a, param in enumerate(parameters):
     ax.legend()
     ax.grid()
 
-
 plt.tight_layout()
+
+# Smith chart for reflection parameters (Snn) in a separate window
+if smith_mode:
+    reflection_params = [p for p in parameters if p[0] == p[1]]
+    if reflection_params:
+        if len(reflection_params) > 1:
+            fig_smith, axes_smith = plt.subplots(1, len(reflection_params), figsize=(5*len(reflection_params), 5))
+        else:
+            fig_smith, axes_smith = plt.subplots(1, 1, figsize=(5, 5))
+        fig_smith.suptitle("Smith Chart")
+
+        for a, param in enumerate(reflection_params):
+            m = param[0]
+            n = param[1]
+            ax = axes_smith[a] if len(reflection_params) > 1 else axes_smith
+            for i,network in enumerate(networks):
+                network.plot_s_smith(m-1, n-1, ax=ax, show_legend=False, draw_labels=True,
+                                      color=colors[i], linestyle=linestyles[i], label=network.name)
+            ax.set_title(f"S{m}{n}")
+            ax.set_aspect('equal')
+            ax.legend()
+
+        plt.tight_layout()
+    else:
+        print('No reflection S-parameters (Snn) selected, skipping Smith chart')
+
 plt.show()
 
