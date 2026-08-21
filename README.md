@@ -19,8 +19,10 @@ The tool plots all files with the specified parameter(s)
 
 Add `-smith` to additionally plot reflection parameters (Snn, e.g. S11, S22) on a Smith chart, in a separate window. The dB/phase window still shows all selected parameters as before.
 
+Add `-zoom` to also open a third window with a Smith chart zoomed in to |&Gamma;| <= 0.5, with a denser labeled grid. `-zoom` can be used with or without `-smith`.
+
 ```
-python plot_snp.py data.s2p S11 S21 -smith
+python plot_snp.py data.s2p S11 S21 -smith -zoom
 ```
 
 
