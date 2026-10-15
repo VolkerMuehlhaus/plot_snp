@@ -1,5 +1,6 @@
 import skrf as rf
 import math
+import re
 import sys
 import numpy as np
 from matplotlib import pyplot as plt
@@ -121,8 +122,8 @@ zoom_mode = False
 # read all files specified in command line
 for arg in sys.argv[1:]:
 
-    if '.s' in arg:
-        # this is an S-parameter file
+    if re.search(r'\.s\d+p$', arg, re.IGNORECASE):
+        # this is an S-parameter file (Touchstone .sNp, also upper case as written by many VNAs, e.g. .S2P)
         network = rf.Network(arg)
         f = network.frequency.f
         networks.append(network)
