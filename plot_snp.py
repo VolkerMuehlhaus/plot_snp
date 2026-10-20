@@ -5,6 +5,8 @@ import sys
 import numpy as np
 from matplotlib import pyplot as plt
 
+__version__ = "0.1.0"
+
 
 # define dB function for S-parameters
 def dB(value):
@@ -98,7 +100,7 @@ def plot_smith_figure(reflection_params, networks, colors, linestyles, title, zo
         ax.set_aspect('equal')
         ax.legend()
 
-    plt.tight_layout()
+    fig_s.tight_layout()
     return fig_s
 
 
@@ -111,113 +113,124 @@ functions = {
 }
 
 
-print('Read S-Parameter files and plot selected S-params')
-
-# evaluate commandline
-networks = []
-parameters = []
-smith_mode = False
-zoom_mode = False
-
-# read all files specified in command line
-for arg in sys.argv[1:]:
-
-    if re.search(r'\.s\d+p$', arg, re.IGNORECASE):
-        # this is an S-parameter file (Touchstone .sNp, also upper case as written by many VNAs, e.g. .S2P)
-        network = rf.Network(arg)
-        f = network.frequency.f
-        networks.append(network)
-
-        # shorted name if file name is too long
-        if len(arg)>17:
-            network.name = network.name[:10] + '..' + network.name[-20:]
-
-    elif arg.upper() in ('-SMITH', '--SMITH'):
-        # plot reflection parameters (Snn) as Smith chart in a separate window
-        smith_mode = True
-        print('Smith chart plotting enabled for reflection parameters (Snn)')
-
-    elif arg.upper() in ('-ZOOM', '--ZOOM'):
-        # additionally plot a Smith chart zoomed to |Gamma|<=0.5 in a separate window
-        zoom_mode = True
-        print('Zoomed Smith chart window enabled for reflection parameters (Snn)')
-
-    elif arg[0].upper() == 'S':
-        # this is control which S-parameter(s) to plot
-        l = len(arg)-1 # length of numbers in Sxx parameter
-        half = int(math.floor(l/2)) # length of one row/column specifier
-
-        m = int(arg[1:half+1])
-        n = int(arg[half+1:l+1])
-        parameters.append([m,n])
-
-        print(f'Specified S-parameter: {m},{n}')
+COLORS = ['b', 'r', 'm', 'c', 'g', 'y', 'k', 'w']
+LINESTYLES = ['solid', 'dashed', 'dashdot', 'dotted','solid', 'dashed', 'dashdot', 'dotted']
 
 
-
-# default is S11 if nothing specified
-if len(parameters) == 0:
-    parameters.append([1,1])
-
-
-# set wide plot if we have 3 or more parameters
-if len(parameters) > 2:
-    fig, axes = plt.subplots(2, len(parameters), figsize=(14, 8))  # NxN grid
-else:
-    fig, axes = plt.subplots(2, len(parameters), figsize=(10, 8))  # NxN grid
-
-fig.suptitle("S Parameters")
-
-colors = ['b', 'r', 'm', 'c', 'g', 'y', 'k', 'w']
-linestyles = ['solid', 'dashed', 'dashdot', 'dotted','solid', 'dashed', 'dashdot', 'dotted']
+# parse an S-parameter name like "S21" or "S1012" into (m, n): the digits are split in half
+def parse_parameter(text):
+    l = len(text)-1 # length of numbers in Sxx parameter
+    half = int(math.floor(l/2)) # length of one row/column specifier
+    m = int(text[1:half+1])
+    n = int(text[half+1:l+1])
+    return m, n
 
 
-for a, param in enumerate(parameters):
-    m = param[0]
-    n = param[1]
+# read one Touchstone file, with a shortened name for the plot legend if the file name is long
+def read_network(filename):
+    network = rf.Network(filename)
+    if len(filename)>17:
+        network.name = network.name[:10] + '..' + network.name[-20:]
+    return network
 
-    func = 'dB'
-    if len(parameters) > 1:
-        ax = axes[0,a]
+
+# plot dB (top row) and phase (bottom row) of the selected S-parameters, one column per parameter
+def plot_db_phase(networks, parameters):
+    # set wide plot if we have 3 or more parameters
+    if len(parameters) > 2:
+        fig, axes = plt.subplots(2, len(parameters), figsize=(14, 8))  # NxN grid
     else:
-        ax = axes[0]
-    for i,network in enumerate(networks):
-        data = functions[func.upper()](Sxx(network,m,n))
-        freq = network.frequency.f/1e9
-        ax.plot(freq , data, color = colors[i], linestyle=linestyles[i], label=network.name)
-    ax.set_xlabel("Frequency (GHz)")
-    ax.set_ylabel(f"{func} S{m}{n}")
-    ax.set_xmargin(0)
-    ax.legend()
-    ax.grid()
+        fig, axes = plt.subplots(2, len(parameters), figsize=(10, 8))  # NxN grid
 
-    func = 'phase'
-    if len(parameters) > 1:
-        ax = axes[1,a]
-    else:
-        ax = axes[1]
-    for i,network in enumerate(networks):
-        data = functions[func.upper()](Sxx(network,m,n))
-        freq = network.frequency.f/1e9
-        ax.plot(freq , data, color = colors[i], linestyle=linestyles[i], label=network.name)
-    ax.set_xlabel("Frequency (GHz)")
-    ax.set_ylabel(f"{func} S{m}{n}")
-    ax.set_xmargin(0)
-    ax.legend()
-    ax.grid()
+    fig.suptitle("S Parameters")
 
-plt.tight_layout()
+    for a, param in enumerate(parameters):
+        m = param[0]
+        n = param[1]
 
-# Smith chart(s) for reflection parameters (Snn) in separate window(s)
-if smith_mode or zoom_mode:
-    reflection_params = [p for p in parameters if p[0] == p[1]]
-    if reflection_params:
-        if smith_mode:
-            plot_smith_figure(reflection_params, networks, colors, linestyles, "Smith Chart", zoomed=False)
-        if zoom_mode:
-            plot_smith_figure(reflection_params, networks, colors, linestyles, "Smith Chart (zoomed)", zoomed=True)
-    else:
-        print('No reflection S-parameters (Snn) selected, skipping Smith chart')
+        for row, func in enumerate(['dB', 'phase']):
+            if len(parameters) > 1:
+                ax = axes[row,a]
+            else:
+                ax = axes[row]
+            for i,network in enumerate(networks):
+                data = functions[func.upper()](Sxx(network,m,n))
+                freq = network.frequency.f/1e9
+                ax.plot(freq , data, color = COLORS[i], linestyle=LINESTYLES[i], label=network.name)
+            ax.set_xlabel("Frequency (GHz)")
+            ax.set_ylabel(f"{func} S{m}{n}")
+            ax.set_xmargin(0)
+            ax.legend()
+            ax.grid()
 
-plt.show()
+    fig.tight_layout()
+    return fig
 
+
+# all figures: dB/phase, plus Smith charts of the reflection parameters (Snn) if requested
+def plot_all(networks, parameters, smith=False, zoom=False):
+    figures = [plot_db_phase(networks, parameters)]
+    if smith or zoom:
+        reflection_params = [p for p in parameters if p[0] == p[1]]
+        if reflection_params:
+            if smith:
+                figures.append(plot_smith_figure(reflection_params, networks, COLORS, LINESTYLES, "Smith Chart", zoomed=False))
+            if zoom:
+                figures.append(plot_smith_figure(reflection_params, networks, COLORS, LINESTYLES, "Smith Chart (zoomed)", zoomed=True))
+        else:
+            print('No reflection S-parameters (Snn) selected, skipping Smith chart')
+    return figures
+
+
+def main(argv=None):
+    args = sys.argv[1:] if argv is None else argv
+
+    if any(arg in ('-h', '--help') for arg in args):
+        print('usage: plot_snp file.snp [file2.snp ...] [S11 S21 ...] [-smith] [-zoom]')
+        return
+    if any(arg in ('-v', '--version') for arg in args):
+        print(f'plot_snp {__version__}')
+        return
+
+    print('Read S-Parameter files and plot selected S-params')
+
+    # evaluate commandline
+    networks = []
+    parameters = []
+    smith_mode = False
+    zoom_mode = False
+
+    # read all files specified in command line
+    for arg in args:
+
+        if re.search(r'\.s\d+p$', arg, re.IGNORECASE):
+            # this is an S-parameter file (Touchstone .sNp, also upper case as written by many VNAs, e.g. .S2P)
+            networks.append(read_network(arg))
+
+        elif arg.upper() in ('-SMITH', '--SMITH'):
+            # plot reflection parameters (Snn) as Smith chart in a separate window
+            smith_mode = True
+            print('Smith chart plotting enabled for reflection parameters (Snn)')
+
+        elif arg.upper() in ('-ZOOM', '--ZOOM'):
+            # additionally plot a Smith chart zoomed to |Gamma|<=0.5 in a separate window
+            zoom_mode = True
+            print('Zoomed Smith chart window enabled for reflection parameters (Snn)')
+
+        elif arg[0].upper() == 'S':
+            # this is control which S-parameter(s) to plot
+            m, n = parse_parameter(arg)
+            parameters.append([m,n])
+
+            print(f'Specified S-parameter: {m},{n}')
+
+    # default is S11 if nothing specified
+    if len(parameters) == 0:
+        parameters.append([1,1])
+
+    plot_all(networks, parameters, smith=smith_mode, zoom=zoom_mode)
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()

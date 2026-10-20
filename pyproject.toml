@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "plot_snp"
+dynamic = ["version"]
+description = "Plot magnitude, phase and Smith charts from Touchstone S-parameter files"
+authors = [
+    { name = "Volker Muehlhaus", email = "volker@muehlhaus.com" }
+]
+license = "Apache-2.0"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "scikit-rf",
+    "matplotlib",
+    "numpy",
+]
+
+[project.scripts]
+plot_snp = "plot_snp:main"
+
+[tool.setuptools]
+py-modules = ["plot_snp"]
+
+[tool.setuptools.dynamic]
+version = {attr = "plot_snp.__version__"}
