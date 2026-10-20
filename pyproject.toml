@@ -18,6 +18,9 @@ dependencies = [
     "numpy",
 ]
 
+[project.urls]
+Homepage = "https://github.com/VolkerMuehlhaus/plot_snp"
+
 [project.scripts]
 plot_snp = "plot_snp:main"
 
